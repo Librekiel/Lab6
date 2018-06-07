@@ -12,6 +12,7 @@
 #include <sys/types.h>
 
 #include "pthread.h"
+#include "libr.h"
 
 struct FactorialArgs {
   uint64_t begin;
@@ -30,22 +31,29 @@ uint64_t MultModulo(uint64_t a, uint64_t b, uint64_t mod) {
   }
 
   return result % mod;
-}
+};
 
+pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 uint64_t Factorial(const struct FactorialArgs *args) {
   uint64_t ans = 1;
 
-  // TODO: your code here
+  // TODO: your code here //=====================done
+  pthread_mutex_lock(&mut);
+  for(int i=args->begin; i<=args->end; i++)
+  {
+      ans = MultModulo(ans,i,args->mod);
+  }
+  pthread_mutex_unlock(&mut);
 
   return ans;
-}
+};
 
 void *ThreadFactorial(void *args) {
   struct FactorialArgs *fargs = (struct FactorialArgs *)args;
   return (void *)(uint64_t *)Factorial(fargs);
 }
 
-int main(int argc, char **argv) {
+int main(char argc, char **argv) {
   int tnum = -1;
   int port = -1;
 
@@ -68,10 +76,20 @@ int main(int argc, char **argv) {
       case 0:
         port = atoi(optarg);
         // TODO: your code here
+        if (port <= 0 )
+        {
+            printf("Error: port<=0\n");
+            return 0;
+        }
         break;
       case 1:
         tnum = atoi(optarg);
         // TODO: your code here
+        if (tnum <= 0)
+        {
+            printf("Error: tnum<0\n");
+            return 0;
+        }
         break;
       default:
         printf("Index %d is out of options\n", option_index);
@@ -157,18 +175,37 @@ int main(int argc, char **argv) {
       fprintf(stdout, "Receive: %llu %llu %llu\n", begin, end, mod);
 
       struct FactorialArgs args[tnum];
+      
+      int diff = end - begin;
+      int step = (diff-diff%tnum)/tnum+1;
+      int *k_array = malloc(sizeof(int) * k);
+      int step_k = 
+      
       for (uint32_t i = 0; i < tnum; i++) {
         // TODO: parallel somehow
-        args[i].begin = 1;
-        args[i].end = 1;
+        args[i].begin = begin+i*step;
+        if(i == tnum-1)
+        {
+            args[i].end = end;
+        }
+        else
+        {
+            args[i].end = begin+(i+1)*step;
+        }
         args[i].mod = mod;
+        for (int j=1; j<step; j++)
+        {
+            
+        }
 
-        if (pthread_create(&threads[i], NULL, ThreadFactorial,
-                           (void *)&args[i])) {
-          printf("Error: pthread_create failed!\n");
-          return 1;
+//        if (pthread_create(&threads[i], NULL, ThreadFactorial,
+//                           (void *)&args[i])) {
+//          printf("Error: pthread_create failed!\n");
+//          return 1;
         }
       }
+      
+      
 
       uint64_t total = 1;
       for (uint32_t i = 0; i < tnum; i++) {
